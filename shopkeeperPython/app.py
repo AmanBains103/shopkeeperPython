@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, get_flashed_messages
+from flask import Flask, render_template, request, redirect, url_for, session, flash, get_flashed_messages, jsonify
 import io
 import json
 import os # Added for environment variables
+import datetime
 
 from shopkeeperPython.game.game_manager import GameManager
 from shopkeeperPython.game.character import Character
@@ -753,6 +754,90 @@ def parse_action_details(details_str: str) -> dict:
     except TypeError as e: # Catches errors if details_str is not string-like for json.loads
         game_manager_instance._print(f"Error (TypeError) parsing action_details string '{details_str}': {e}. Using empty details.")
         return {}
+
+
+@app.route('/skill_check_event', methods=['GET'])
+def get_skill_check_event():
+    """Trigger a random skill check event"""
+    if 'selected_character_slot' not in session:
+        return jsonify({'error': 'No character selected'}), 400
+        
+    username = session.get('username')
+    slot_index = session['selected_character_slot']
+    
+    if username not in user_characters or slot_index >= len(user_characters[username]):
+        return jsonify({'error': 'Invalid character slot'}), 400
+        
+    # Ensure game manager is initialized
+    if not game_manager_instance or not game_manager_instance.character:
+        return jsonify({'error': 'Game not initialized'}), 400
+        
+    # Get event manager
+    event_manager = game_manager_instance.event_manager
+    if not event_manager or not hasattr(event_manager, 'skill_check_manager'):
+        return jsonify({'error': 'Event system not available'}), 400
+        
+    # Trigger a skill check event
+    event_data = event_manager.skill_check_manager.trigger_random_event()
+    if not event_data:
+        return jsonify({'error': 'No events available for your level'}), 404
+        
+    return jsonify(event_data)
+
+
+@app.route('/skill_check/prepare', methods=['POST'])
+def prepare_skill_check():
+    """Prepare a skill check for the selected choice"""
+    data = request.get_json()
+    choice_index = data.get('choice_index')
+    
+    if choice_index is None:
+        return jsonify({'error': 'No choice selected'}), 400
+        
+    if not game_manager_instance or not game_manager_instance.event_manager:
+        return jsonify({'error': 'Game not initialized'}), 400
+        
+    event_manager = game_manager_instance.event_manager
+    if not hasattr(event_manager, 'skill_check_manager'):
+        return jsonify({'error': 'Skill check system not available'}), 400
+        
+    # Prepare the skill check
+    check_data = event_manager.skill_check_manager.prepare_skill_check(choice_index)
+    
+    return jsonify(check_data)
+
+
+@app.route('/skill_check/resolve', methods=['POST'])
+def resolve_skill_check():
+    """Resolve a skill check with the dice roll result"""
+    data = request.get_json()
+    roll_result = data.get('roll_result')
+    
+    if roll_result is None:
+        return jsonify({'error': 'No roll result provided'}), 400
+        
+    if not game_manager_instance or not game_manager_instance.event_manager:
+        return jsonify({'error': 'Game not initialized'}), 400
+        
+    event_manager = game_manager_instance.event_manager
+    if not hasattr(event_manager, 'skill_check_manager'):
+        return jsonify({'error': 'Skill check system not available'}), 400
+        
+    # Resolve the skill check
+    result = event_manager.skill_check_manager.resolve_skill_check(roll_result)
+    
+    # Save character state after event resolution
+    if player_char and player_char.name and not player_char.is_dead:
+        username = session.get('username')
+        slot_index = session.get('selected_character_slot')
+        if username and slot_index is not None:
+            if username in user_characters and 0 <= slot_index < len(user_characters[username]):
+                user_characters[username][slot_index] = player_char.to_dict(
+                    current_town_name=game_manager_instance.current_town.name
+                )
+                save_user_characters()
+    
+    return jsonify(result)
 
 
 @app.route('/action', methods=['POST'])

@@ -2,10 +2,13 @@ import random
 try:
     from .character import Character
     from .item import Item
+    from .skill_check_events import SkillCheckEventManager, SkillCheckEvent
 except ImportError:
     print("EventManager: Running g_event.py directly, Character/Item might not be fully available for EventManager testing.")
     class Character: pass
     class Item: pass
+    class SkillCheckEventManager: pass
+    class SkillCheckEvent: pass
 
 
 class Event:
@@ -72,6 +75,8 @@ class EventManager:
     def __init__(self, character: Character, game_manager): # Added game_manager
         self.character = character
         self.game_manager = game_manager # Store game_manager instance
+        # Initialize skill check event manager
+        self.skill_check_manager = SkillCheckEventManager(character, game_manager) if SkillCheckEventManager else None
 
     def trigger_random_event(self, possible_events: list[Event]) -> str | None: # Return event name or None
         if not possible_events:

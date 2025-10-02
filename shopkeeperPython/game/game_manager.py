@@ -1,5 +1,6 @@
 import random
 import json # Import json for save/load
+import datetime
 from .time_system import GameTime
 from .character import Character, JournalEntry # Import JournalEntry
 from .g_event import EventManager, SAMPLE_EVENTS, Event
@@ -154,14 +155,14 @@ class GameManager:
                     entry_timestamp_dt = datetime.datetime.fromisoformat(timestamp)
                 except ValueError:
                     self._print(f"  [Journal Error] Invalid timestamp format: {timestamp}. Using current time.")
-                    entry_timestamp_dt = self.time.get_current_datetime()
+                    entry_timestamp_dt = datetime.datetime.now()
             elif isinstance(timestamp, datetime.datetime): # Ensure datetime is imported
                  entry_timestamp_dt = timestamp
             else:
                 self._print(f"  [Journal Error] Unexpected timestamp type: {type(timestamp)}. Using current time.")
-                entry_timestamp_dt = self.time.get_current_datetime()
+                entry_timestamp_dt = datetime.datetime.now()
         else:
-            entry_timestamp_dt = self.time.get_current_datetime()
+            entry_timestamp_dt = datetime.datetime.now()
 
         try:
             entry = JournalEntry(
@@ -975,9 +976,20 @@ class GameManager:
 
         # Further post-action events (random events, NPC sales) only if character is alive
         if hasattr(self.character, 'is_dead') and not self.character.is_dead:
-            # Random Event Chance
-            if self.event_manager and action_name not in ["debug_trigger_event"] and random.random() < self.base_event_chance:
-                if SAMPLE_EVENTS: # Ensure SAMPLE_EVENTS is not empty
+            # Random Event Chance - now includes both old-style events and skill check events
+            if self.event_manager and action_name not in ["debug_trigger_event"]:
+                # 15% chance for skill check events (more frequent than old events)
+                if hasattr(self.event_manager, 'skill_check_manager') and self.event_manager.skill_check_manager and random.random() < 0.15:
+                    # Trigger a skill check event
+                    event_data = self.event_manager.skill_check_manager.trigger_random_event()
+                    if event_data:
+                        self._print(f"\n--- Skill Check Event: {event_data['name']} ---")
+                        self._print(f"Description: {event_data['description']}")
+                        self._print("(Event requires player interaction in the UI)")
+                        self.daily_special_events.append(f"Skill Check: {event_data['name']}")
+                        # Note: The actual resolution happens through the web UI
+                # 5% chance for old-style automatic events
+                elif random.random() < self.base_event_chance and SAMPLE_EVENTS:
                     triggered_event_name = self.event_manager.trigger_random_event(SAMPLE_EVENTS)
                     if triggered_event_name: # If an event was actually triggered
                         self.daily_special_events.append(triggered_event_name)

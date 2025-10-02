@@ -918,6 +918,254 @@
                 actionResultPopup.style.display = 'none';
             });
         }
+
+        // Skill Check Event System
+        const skillCheckEventModal = document.getElementById('skillCheckEventModal');
+        const eventTitle = document.getElementById('event-title');
+        const eventDescription = document.getElementById('event-description');
+        const eventChoices = document.getElementById('event-choices');
+        const diceArea = document.getElementById('dice-area');
+        const resultArea = document.getElementById('result-area');
+        const d20Dice = document.getElementById('d20-dice');
+        const diceFace = d20Dice.querySelector('.dice-face');
+        const rollDiceBtn = document.getElementById('roll-dice-btn');
+        const rollDetails = document.getElementById('roll-details');
+        const triggerEventBtn = document.getElementById('trigger-event-btn');
+        
+        let currentSkillCheck = null;
+        let isRolling = false;
+
+        // Trigger event button (for testing)
+        if (triggerEventBtn) {
+            triggerEventBtn.addEventListener('click', triggerRandomEvent);
+        }
+
+        // Function to trigger a random event
+        async function triggerRandomEvent() {
+            try {
+                const response = await fetch('/skill_check_event');
+                if (!response.ok) {
+                    const error = await response.json();
+                    console.error('Failed to trigger event:', error);
+                    return;
+                }
+                
+                const eventData = await response.json();
+                showSkillCheckEvent(eventData);
+            } catch (error) {
+                console.error('Error triggering event:', error);
+            }
+        }
+
+        // Function to show skill check event
+        function showSkillCheckEvent(eventData) {
+            eventTitle.textContent = eventData.name;
+            eventDescription.textContent = eventData.description;
+            
+            // Clear and populate choices
+            eventChoices.innerHTML = '';
+            eventData.choices.forEach(choice => {
+                const choiceBtn = document.createElement('button');
+                choiceBtn.className = 'event-choice-btn';
+                choiceBtn.innerHTML = `
+                    <span class="choice-text">${choice.description}</span>
+                    ${choice.has_item_bonus ? '<span class="item-bonus">✨ Item Bonus!</span>' : ''}
+                `;
+                choiceBtn.addEventListener('click', () => selectChoice(choice.index));
+                eventChoices.appendChild(choiceBtn);
+            });
+            
+            // Reset areas
+            diceArea.style.display = 'none';
+            resultArea.style.display = 'none';
+            eventChoices.style.display = 'block';
+            
+            // Show modal
+            skillCheckEventModal.style.display = 'block';
+        }
+
+        // Function to select a choice
+        async function selectChoice(choiceIndex) {
+            try {
+                const response = await fetch('/skill_check/prepare', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({choice_index: choiceIndex})
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    console.error('Failed to prepare skill check:', error);
+                    return;
+                }
+                
+                currentSkillCheck = await response.json();
+                showDiceRoll();
+            } catch (error) {
+                console.error('Error preparing skill check:', error);
+            }
+        }
+
+        // Function to show dice roll
+        function showDiceRoll() {
+            eventChoices.style.display = 'none';
+            diceArea.style.display = 'block';
+            
+            // Update roll details
+            const bonusText = currentSkillCheck.item_bonus > 0 
+                ? ` + ${currentSkillCheck.item_bonus} (item)` 
+                : '';
+            rollDetails.innerHTML = `
+                <strong>${currentSkillCheck.skill} Check</strong><br>
+                DC ${currentSkillCheck.dc}<br>
+                Modifier: ${currentSkillCheck.modifier >= 0 ? '+' : ''}${currentSkillCheck.modifier}${bonusText}
+            `;
+            
+            // Reset dice
+            diceFace.textContent = '20';
+            d20Dice.classList.remove('rolling', 'rolled');
+        }
+
+        // Roll dice animation
+        rollDiceBtn.addEventListener('click', async () => {
+            if (isRolling) return;
+            
+            isRolling = true;
+            rollDiceBtn.disabled = true;
+            
+            // Start rolling animation
+            d20Dice.classList.add('rolling');
+            
+            // Simulate dice rolling by changing numbers
+            let rollInterval = setInterval(() => {
+                diceFace.textContent = Math.floor(Math.random() * 20) + 1;
+            }, 50);
+            
+            // Stop after 2 seconds
+            setTimeout(async () => {
+                clearInterval(rollInterval);
+                
+                // Generate final roll
+                const finalRoll = Math.floor(Math.random() * 20) + 1;
+                diceFace.textContent = finalRoll;
+                
+                // Stop animation
+                d20Dice.classList.remove('rolling');
+                d20Dice.classList.add('rolled');
+                
+                // Add glow effect based on roll
+                if (finalRoll === 20) {
+                    d20Dice.classList.add('crit-success');
+                } else if (finalRoll === 1) {
+                    d20Dice.classList.add('crit-fail');
+                }
+                
+                // Resolve the skill check
+                await resolveSkillCheck(finalRoll);
+                
+                isRolling = false;
+                rollDiceBtn.disabled = false;
+            }, 2000);
+        });
+
+        // Function to resolve skill check
+        async function resolveSkillCheck(rollResult) {
+            try {
+                const response = await fetch('/skill_check/resolve', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({roll_result: rollResult})
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    console.error('Failed to resolve skill check:', error);
+                    return;
+                }
+                
+                const result = await response.json();
+                showResult(result, rollResult);
+            } catch (error) {
+                console.error('Error resolving skill check:', error);
+            }
+        }
+
+        // Function to show result
+        function showResult(result, rollValue) {
+            diceArea.style.display = 'none';
+            resultArea.style.display = 'block';
+            
+            // Set result title
+            const resultTitle = document.getElementById('result-title');
+            resultTitle.textContent = result.success ? 'Success!' : 'Failure!';
+            resultTitle.className = result.success ? 'success' : 'failure';
+            
+            // Set result message
+            const resultMessage = document.getElementById('result-message');
+            const totalText = currentSkillCheck.item_bonus > 0
+                ? `${rollValue} + ${currentSkillCheck.modifier} + ${currentSkillCheck.item_bonus} = ${result.total}`
+                : `${rollValue} + ${currentSkillCheck.modifier} = ${result.total}`;
+            resultMessage.innerHTML = `
+                <strong>Roll:</strong> ${totalText} vs DC ${result.dc}<br><br>
+                ${result.message}
+            `;
+            
+            // Show effects
+            const resultEffects = document.getElementById('result-effects');
+            resultEffects.innerHTML = '';
+            
+            if (result.effects) {
+                const effectsList = document.createElement('ul');
+                effectsList.className = 'effects-list';
+                
+                if (result.effects.xp_gained) {
+                    effectsList.innerHTML += `<li class="positive">+${result.effects.xp_gained} XP</li>`;
+                }
+                if (result.effects.gold_gained) {
+                    effectsList.innerHTML += `<li class="positive">+${result.effects.gold_gained} Gold</li>`;
+                }
+                if (result.effects.item_gained) {
+                    effectsList.innerHTML += `<li class="positive">Gained ${result.effects.item_gained.name} x${result.effects.item_gained.quantity}</li>`;
+                }
+                if (result.effects.xp_lost) {
+                    effectsList.innerHTML += `<li class="negative">-${result.effects.xp_lost} XP</li>`;
+                }
+                if (result.effects.gold_lost) {
+                    effectsList.innerHTML += `<li class="negative">-${result.effects.gold_lost} Gold</li>`;
+                }
+                if (result.effects.item_lost) {
+                    effectsList.innerHTML += `<li class="negative">Lost ${result.effects.item_lost}</li>`;
+                }
+                
+                if (effectsList.children.length > 0) {
+                    resultEffects.appendChild(effectsList);
+                }
+            }
+        }
+
+        // Close event modal
+        document.getElementById('close-event-btn').addEventListener('click', () => {
+            skillCheckEventModal.style.display = 'none';
+            // Reset dice classes
+            d20Dice.classList.remove('crit-success', 'crit-fail');
+            // Reload page to update character state
+            location.reload();
+        });
+
+        // Randomly trigger events after actions (10% chance)
+        const originalFetch = window.fetch;
+        window.fetch = function(...args) {
+            return originalFetch.apply(this, args).then(response => {
+                // Check if this was an action endpoint
+                if (args[0] && args[0].includes('/action') && response.ok) {
+                    // 10% chance to trigger an event after an action
+                    if (Math.random() < 0.1) {
+                        setTimeout(triggerRandomEvent, 1000);
+                    }
+                }
+                return response;
+            });
+        };
     });
     </script>
     {% endif %}
@@ -936,5 +1184,44 @@
             </div>
         </div>
     </div>
+
+    <!-- Skill Check Event Modal -->
+    <div id="skillCheckEventModal" class="modal" style="display: none;">
+        <div class="modal-content skill-check-modal">
+            <h2 id="event-title">Event!</h2>
+            <p id="event-description"></p>
+            <div id="event-choices" class="event-choices">
+                <!-- Choices will be dynamically inserted here -->
+            </div>
+            
+            <!-- Dice Rolling Area -->
+            <div id="dice-area" style="display: none;">
+                <div class="dice-container">
+                    <div id="d20-dice" class="d20-dice">
+                        <div class="dice-face">20</div>
+                    </div>
+                </div>
+                <div id="roll-info" class="roll-info">
+                    <p id="roll-details"></p>
+                    <button id="roll-dice-btn" class="roll-dice-btn">Roll the D20!</button>
+                </div>
+            </div>
+            
+            <!-- Result Area -->
+            <div id="result-area" style="display: none;">
+                <h3 id="result-title"></h3>
+                <p id="result-message"></p>
+                <div id="result-effects"></div>
+                <button id="close-event-btn" class="close-event-btn">Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Button to trigger random events (for testing) -->
+    {% if player_character %}
+    <button id="trigger-event-btn" class="trigger-event-btn" style="position: fixed; bottom: 20px; right: 20px;">
+        Trigger Random Event
+    </button>
+    {% endif %}
 </body>
 </html>
