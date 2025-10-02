@@ -1134,3 +1134,257 @@ em, i {
     color: var(--color-dark-ink); /* Keep it consistent */
     font-weight: bold;
 }
+
+/* Skill Check Event Modal Styles */
+.skill-check-modal {
+    max-width: 600px;
+    width: 90%;
+}
+
+#skillCheckEventModal .modal-content {
+    padding: 30px;
+}
+
+#event-title {
+    font-family: var(--font-primary);
+    color: var(--color-highlight-red);
+    text-align: center;
+    margin-bottom: 15px;
+    font-size: 1.8em;
+}
+
+#event-description {
+    font-family: var(--font-secondary);
+    color: var(--color-dark-ink);
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 1.1em;
+    line-height: 1.5;
+}
+
+.event-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.event-choice-btn {
+    background-color: var(--color-deep-brown-border);
+    color: var(--color-parchment-bg);
+    font-family: var(--font-primary);
+    padding: 12px 20px;
+    border: 2px outset var(--color-light-border);
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    text-align: left;
+    transition: all 0.3s ease;
+    box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    position: relative;
+}
+
+.event-choice-btn:hover {
+    background-color: #7a5c4f;
+    transform: translateY(-2px);
+    box-shadow: 3px 3px 6px rgba(0,0,0,0.4);
+}
+
+.item-bonus {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-highlight-gold);
+    font-size: 0.9em;
+    font-weight: bold;
+}
+
+/* Dice Rolling Area */
+.dice-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 30px;
+    perspective: 1000px;
+}
+
+.d20-dice {
+    width: 120px;
+    height: 120px;
+    background: linear-gradient(135deg, #8B0000 0%, #A52A2A 50%, #8B0000 100%);
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+    transform-style: preserve-3d;
+    transition: transform 0.3s ease;
+}
+
+.dice-face {
+    font-family: var(--font-primary);
+    font-size: 3em;
+    color: var(--color-parchment-bg);
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.d20-dice.rolling {
+    animation: diceRoll 0.2s infinite linear;
+}
+
+.d20-dice.rolled {
+    animation: diceBounce 0.5s ease-out;
+}
+
+.d20-dice.crit-success {
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FFD700 100%);
+    box-shadow: 0 0 30px #FFD700, 0 10px 20px rgba(0,0,0,0.4);
+}
+
+.d20-dice.crit-fail {
+    background: linear-gradient(135deg, #2F4F4F 0%, #696969 50%, #2F4F4F 100%);
+    box-shadow: 0 0 20px #696969, 0 10px 20px rgba(0,0,0,0.4);
+}
+
+@keyframes diceRoll {
+    0% { transform: rotateX(0deg) rotateY(0deg); }
+    25% { transform: rotateX(90deg) rotateY(45deg); }
+    50% { transform: rotateX(180deg) rotateY(90deg); }
+    75% { transform: rotateX(270deg) rotateY(135deg); }
+    100% { transform: rotateX(360deg) rotateY(180deg); }
+}
+
+@keyframes diceBounce {
+    0% { transform: scale(1) translateY(0); }
+    40% { transform: scale(1.2) translateY(-20px); }
+    60% { transform: scale(0.95) translateY(5px); }
+    80% { transform: scale(1.05) translateY(-5px); }
+    100% { transform: scale(1) translateY(0); }
+}
+
+.roll-info {
+    text-align: center;
+}
+
+.roll-info p {
+    font-family: var(--font-secondary);
+    color: var(--color-dark-ink);
+    margin-bottom: 15px;
+    line-height: 1.4;
+}
+
+.roll-dice-btn {
+    background-color: var(--color-highlight-red);
+    color: var(--color-parchment-bg);
+    font-family: var(--font-primary);
+    padding: 12px 30px;
+    border: 2px outset var(--color-light-border);
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.2em;
+    box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+}
+
+.roll-dice-btn:hover:not(:disabled) {
+    background-color: #A52A2A;
+    transform: translateY(-2px);
+    box-shadow: 3px 3px 6px rgba(0,0,0,0.4);
+}
+
+.roll-dice-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Result Area */
+#result-area {
+    text-align: center;
+}
+
+#result-title {
+    font-family: var(--font-primary);
+    font-size: 2em;
+    margin-bottom: 15px;
+}
+
+#result-title.success {
+    color: #228B22;
+}
+
+#result-title.failure {
+    color: var(--color-highlight-red);
+}
+
+#result-message {
+    font-family: var(--font-secondary);
+    color: var(--color-dark-ink);
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.effects-list {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0;
+}
+
+.effects-list li {
+    font-family: var(--font-secondary);
+    padding: 5px 10px;
+    margin: 5px 0;
+    border-radius: 3px;
+}
+
+.effects-list li.positive {
+    background-color: #E8F5E9;
+    color: #2E7D32;
+    border-left: 4px solid #4CAF50;
+}
+
+.effects-list li.negative {
+    background-color: #FFEBEE;
+    color: #C62828;
+    border-left: 4px solid #F44336;
+}
+
+.close-event-btn {
+    background-color: var(--color-deep-brown-border);
+    color: var(--color-parchment-bg);
+    font-family: var(--font-primary);
+    padding: 10px 25px;
+    border: 2px outset var(--color-light-border);
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.1em;
+    box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+    margin-top: 20px;
+}
+
+.close-event-btn:hover {
+    background-color: #7a5c4f;
+    transform: translateY(-2px);
+    box-shadow: 3px 3px 6px rgba(0,0,0,0.4);
+}
+
+/* Trigger Event Button (for testing) */
+.trigger-event-btn {
+    background-color: var(--color-highlight-gold);
+    color: var(--color-dark-ink);
+    font-family: var(--font-primary);
+    padding: 10px 20px;
+    border: 2px outset var(--color-deep-brown-border);
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+}
+
+.trigger-event-btn:hover {
+    background-color: #FFE55C;
+    transform: translateY(-2px);
+    box-shadow: 3px 3px 6px rgba(0,0,0,0.4);
+}
